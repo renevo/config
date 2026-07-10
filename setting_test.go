@@ -2,28 +2,31 @@ package config
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/matryer/is"
 )
 
 type setTest struct {
-	To          interface{}
-	Initializer interface{}
+	To          any
+	Initializer any
 	CheckString string
 }
 
-func (s setTest) Value() interface{} {
+func (s setTest) Value() any {
 	return reflect.Indirect(reflect.ValueOf(s.Initializer)).Interface()
 }
 
-func (s setTest) Equals(v interface{}) bool {
+func (s setTest) Equals(v any) bool {
 	return reflect.Indirect(reflect.ValueOf(s.Initializer)).Interface() == v
 }
 
-func newSetTest(to interface{}, v interface{}, s string) setTest {
+func newSetTest(to any, v any, s string) setTest {
 	p := reflect.New(reflect.TypeOf(v))
 	p.Elem().Set(reflect.ValueOf(v))
 
@@ -68,37 +71,28 @@ func TestSetting_Set(t *testing.T) {
 		}
 
 		t.Run(testName, func(t *testing.T) {
+			is := is.New(t)
 			s := &Setting{Value: test.Initializer}
 
 			// validates if the provided string matches the formatting of the string value
-			if !s.Equals(test.CheckString) {
-				t.Errorf("Failed to equality check supplied string value: expected %q; got %q", test.CheckString, s.String())
-			}
+			is.True(s.Equals(test.CheckString)) // expected the initial string value to match the setting string
 
 			// make sure we can set the value from the provided string value
-			if err := s.Set(test.CheckString); err != nil {
-				t.Errorf("Failed to set from string value: %v", err)
-			}
+			err := s.Set(test.CheckString)
+			is.NoErr(err) // expected setting updates from string values to succeed
 
 			// make sure we can set the value from the raw sprinted to string
-			if err := s.Set(fmt.Sprintf("%v", test.To)); err != nil {
-				t.Fatalf("Failed to set string value: %v", err)
-			}
+			err = s.Set(fmt.Sprintf("%v", test.To))
+			is.NoErr(err) // expected setting updates from formatted values to succeed
 
 			// validate that the pointer was in fact changed to the new value
-			if !test.Equals(test.To) {
-				t.Errorf("Failed to update value: expected %v; got %v", test.To, test.Value())
-			}
+			is.True(test.Equals(test.To)) // expected the underlying value to be updated to the new target value
 
 			// validate that we don't get a blank string back (could probably be a better test TBH)
-			if s.String() == "" {
-				t.Errorf("Failed to string value: got %q", s.String())
-			}
+			is.True(s.String() != "") // expected the string value to be non-empty
 
 			// validate that the fmt.sprintf matches the equality checker
-			if !s.Equals(fmt.Sprintf("%v", test.To)) {
-				t.Errorf("Failed to equality check string value: expected %q; got %q", fmt.Sprintf("%v", test.To), s.String())
-			}
+			is.True(s.Equals(fmt.Sprintf("%v", test.To))) // expected the formatted value to match the setting equality logic
 		})
 	}
 }
@@ -127,43 +121,28 @@ func (cs *customSetting) Equals(v string) bool {
 }
 
 func TestSetting_CustomType(t *testing.T) {
+	is := is.New(t)
 	cs := &customSetting{
 		Value: []byte("hello"),
 	}
 
 	st := &Setting{Value: cs}
 
-	if string(cs.Value) != st.String() {
-		t.Errorf("Failed to get string value for custom type")
-	}
-	if !cs.Marshaled {
-		t.Error("Custom object MarshalSetting not called")
-	}
+	is.Equal(string(cs.Value), st.String()) // expected a custom type to stringify through MarshalSetting
+	is.True(cs.Marshaled)                   // expected MarshalSetting to be called for custom types
 
 	newValue := "goodbye"
 
-	if err := st.Set(newValue); err != nil {
-		t.Fatalf("Failed to set string value for custom type: %v", err)
-	}
-
-	if !cs.Unmarshaled {
-		t.Errorf("Custom object UnmarshalSetting not called")
-	}
-
-	if string(cs.Value) != newValue {
-		t.Errorf("Failed to get updated string value for custom type: expected %q; got %q", newValue, string(cs.Value))
-	}
-
-	if !st.Equals(newValue) {
-		t.Error("Failed to match equality on setting to set value")
-	}
-
-	if !cs.Equaled {
-		t.Errorf("Custom object Equals not called")
-	}
+	err := st.Set(newValue)
+	is.NoErr(err)                        // expected custom values to be set successfully
+	is.True(cs.Unmarshaled)              // expected UnmarshalSetting to be called for custom types
+	is.Equal(string(cs.Value), newValue) // expected the custom value to be updated
+	is.True(st.Equals(newValue))         // expected the setting to equal the updated custom value
+	is.True(cs.Equaled)                  // expected Equals to be called for custom types
 }
 
 func TestSetting_Notify(t *testing.T) {
+	is := is.New(t)
 	name := "Test"
 	value1 := "value1"
 	value2 := "value2"
@@ -178,52 +157,51 @@ func TestSetting_Notify(t *testing.T) {
 		notifyCalled = true
 	}))
 
-	if err := st.Set(value1); err != nil {
-		t.Fatalf("Failed to set value: %v", err)
-	}
-
-	if notifyCalled {
-		t.Errorf("Notification unexpectingly called when value was the same")
-	}
+	err := st.Set(value1)
+	is.NoErr(err)          // expected the initial setting update to succeed
+	is.True(!notifyCalled) // expected no notification when the value stays the same
 	notifyCalled = false
 
-	if err := st.Set(value2); err != nil {
-		t.Fatalf("Failed to set value: %v", err)
-	}
-
-	if !notifyCalled {
-		t.Errorf("Notification did not execute as expected when value changed; current %q", st.String())
-	}
+	err = st.Set(value2)
+	is.NoErr(err)         // expected the changed setting update to succeed
+	is.True(notifyCalled) // expected a notification when the value changes
 	notifyCalled = false
 
-	if err := nh.Close(); err != nil {
-		t.Fatalf("Failed to close Notify Handle: %v", err)
-	}
+	err = nh.Close()
+	is.NoErr(err) // expected the notification handle to close successfully
 
-	if err := st.Set(value1); err != nil {
-		t.Fatalf("Failed to set value: %v", err)
-	}
-
-	if notifyCalled {
-		t.Errorf("Notification unexpectingly called after Notify Handler Closed")
-	}
+	err = st.Set(value1)
+	is.NoErr(err)          // expected a later setting update to succeed
+	is.True(!notifyCalled) // expected no notification after the handle has been closed
 
 }
 
 func TestSetting_FlagCompat(t *testing.T) {
+	is := is.New(t)
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	st := &Setting{Name: "debug", Description: "Sets debug mode", Value: false}
 	st.Flag("debug", fs)
 
-	if err := fs.Parse([]string{"-debug"}); err != nil {
-		t.Errorf("Failed to set debug flag: %v", err)
-	}
+	err := fs.Parse([]string{"-debug"})
+	is.NoErr(err)               // expected the debug flag to parse successfully
+	is.True(st.Value.(bool))    // expected the bool setting to be updated by the flag
+	is.Equal(st.Type(), "bool") // expected the flag-compatible type to resolve as bool
+}
 
-	if st.Value.(bool) != true {
-		t.Errorf("Failed to set Setting from flag -debug")
-	}
+type errWriter struct {
+	err error
+}
 
-	if st.Type() != "bool" {
-		t.Errorf("Failed to resolve type; expected %q got %q", "bool", st.Type())
-	}
+func (w errWriter) Write(p []byte) (int, error) {
+	return 0, w.err
+}
+
+func TestSetDumpReturnsWriteError(t *testing.T) {
+	is := is.New(t)
+	set := NewSet()
+	set.Setting("name", "value", "description")
+
+	expectedErr := errors.New("write failed")
+	err := set.Dump(errWriter{err: expectedErr})
+	is.True(errors.Is(err, expectedErr)) // expected Dump to surface the underlying write error
 }

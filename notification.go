@@ -8,7 +8,7 @@ type Notifier interface {
 
 // NotifyHandle is used to stop notifications of Setting changes
 type NotifyHandle struct {
-	stopFunc func(interface{})
+	stopFunc func(any)
 }
 
 // Close the notification handle

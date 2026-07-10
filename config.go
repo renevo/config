@@ -2,12 +2,22 @@ package config
 
 import "io"
 
-// Default configuration Set
-var Default = &Set{}
+// Default configuration Set.
+var Default = NewSet()
 
-// New will create a new setting with the specified name, value, and description in the Default Set. Name can not be empty, value can not be nil
-func New(name string, value Value, description string) *Setting {
+// NewSet creates a new independent root configuration set.
+func NewSet() *Set {
+	return &Set{}
+}
+
+// NewSetting creates a new setting in the default root set.
+func NewSetting(name string, value Value, description string) *Setting {
 	return Default.Setting(name, value, description)
+}
+
+// New will create a new setting with the specified name, value, and description in the Default Set. Name can not be empty, value can not be nil.
+func New(name string, value Value, description string) *Setting {
+	return NewSetting(name, value, description)
 }
 
 // Get a setting by name
@@ -33,8 +43,8 @@ func Subset(name string) *Set {
 //
 // You can mask the Stringer of the setting (set it to output *****) by setting the field tag `mask:"true"`. This is really important to do to passwords/tokens/etc... to make sure they don't end up in logs.
 //
-// If a `flag` field tag exists, the `setting.Flag()` function will be called with the value and `flag.CommandLine``
-func Bind(value interface{}) *Set {
+// If a `flag` field tag exists, the `setting.Flag()` function will be called with the value and `flag.CommandLine“.
+func Bind(value any) *Set {
 	return Default.Bind(value)
 }
 

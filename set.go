@@ -176,10 +176,10 @@ func (s *Set) Range(fn func(string, *Setting) bool) {
 // Descriptions on settings can be set with the `description` field tag.
 //
 // You can mask the Stringer of the setting (set it to output *****) by setting the field tag `mask:"true"`. This is really important to do to passwords/tokens/etc... to make sure they don't end up in logs.
-func (s *Set) Bind(value interface{}) *Set {
+func (s *Set) Bind(value any) *Set {
 	rvalue := reflect.ValueOf(value)
 
-	if rvalue.Kind() != reflect.Ptr {
+	if rvalue.Kind() != reflect.Pointer {
 		panic("value must be a pointer value")
 	}
 
@@ -214,7 +214,7 @@ func (s *Set) Bind(value interface{}) *Set {
 		case reflect.Invalid, reflect.Chan, reflect.Func:
 			// do nothing
 
-		case reflect.Ptr:
+		case reflect.Pointer:
 			// if the thing is a pointer, then call this as a child
 			s.Subset(name).Bind(fieldValue.Interface())
 
@@ -251,14 +251,20 @@ func (s *Set) Dump(w io.Writer) error {
 	sort.Slice(settings, func(i, j int) bool { return settings[i].Path < settings[j].Path })
 
 	// print header
-	fmt.Fprintln(tw, "Path\tType\tValue\tDefault Value\tDescription")
+	if _, err := fmt.Fprintln(tw, "Path\tType\tValue\tDefault Value\tDescription"); err != nil {
+		return err
+	}
 
 	// print items
 	for _, setting := range settings {
 		if setting.Mask {
-			fmt.Fprintf(tw, "%s\t%T\t%q\t\"*****\"\t%s\n", setting.Path, setting.Value, setting.String(), setting.Description)
+			if _, err := fmt.Fprintf(tw, "%s\t%T\t%q\t\"*****\"\t%s\n", setting.Path, setting.Value, setting.String(), setting.Description); err != nil {
+				return err
+			}
 		} else {
-			fmt.Fprintf(tw, "%s\t%T\t%q\t%q\t%s\n", setting.Path, setting.Value, setting.String(), setting.DefaultValue, setting.Description)
+			if _, err := fmt.Fprintf(tw, "%s\t%T\t%q\t%q\t%s\n", setting.Path, setting.Value, setting.String(), setting.DefaultValue, setting.Description); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -282,7 +288,7 @@ func (s *Set) Notify(n Notifier) *NotifyHandle {
 
 // notifyChanged is attached to all settings so that we can get notified of when they are added
 func (s *Set) notifyChanged(setting *Setting) {
-	s.notifiers.Range(func(k, v interface{}) bool {
+	s.notifiers.Range(func(k, v any) bool {
 		notifier := v.(Notifier)
 		notifier.Notify(setting)
 		return true

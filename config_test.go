@@ -4,7 +4,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/portcullis/config"
+	"github.com/renevo/config"
 )
 
 func ExampleBind() {
@@ -29,13 +29,13 @@ func ExampleBind() {
 	config.Subset("MyApplication").Bind(&myConfig)
 
 	// parsing the flags, would normally be replaced with os.Args[1:]
-	flag.CommandLine.Parse([]string{"-name=flagged", "-address=127.0.0.1", "-port=8090"})
+	_ = flag.CommandLine.Parse([]string{"-name=flagged", "-address=127.0.0.1", "-port=8090"})
 
 	// manually update a setting by full path (the value being set can come from os.GetEnv())
-	config.Update("MyApplication.Enabled", "true")
+	_, _ = config.Update("MyApplication.Enabled", "true")
 
 	// dump the output
-	config.Dump(os.Stdout)
+	_ = config.Dump(os.Stdout)
 
 	// Output:
 	// Path                        Type        Value           Default Value      Description

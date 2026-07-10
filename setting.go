@@ -24,8 +24,8 @@ type Equality interface {
 	Equals(string) bool
 }
 
-// Value is an interface for interacting with the underlying configuration value
-type Value interface{}
+// Value is an interface for interacting with the underlying configuration value.
+type Value = any
 
 // Setting within the configuration containing a Value
 type Setting struct {
@@ -269,7 +269,7 @@ func (s *Setting) Set(v string) error {
 	}
 
 	// notify those of changed value
-	s.notifiers.Range(func(key, val interface{}) bool {
+	s.notifiers.Range(func(key, val any) bool {
 		f, ok := val.(Notifier)
 		if !ok || f == nil {
 			s.notifiers.Delete(key)
