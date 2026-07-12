@@ -1,7 +1,6 @@
 package config
 
 import (
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -72,7 +71,7 @@ func TestSetting_Set(t *testing.T) {
 
 		t.Run(testName, func(t *testing.T) {
 			is := is.New(t)
-			s := &Setting{Value: test.Initializer}
+			s := &Setting{value: test.Initializer}
 
 			// validates if the provided string matches the formatting of the string value
 			is.True(s.Equals(test.CheckString)) // expected the initial string value to match the setting string
@@ -97,57 +96,13 @@ func TestSetting_Set(t *testing.T) {
 	}
 }
 
-type customSetting struct {
-	Value       []byte
-	Marshaled   bool
-	Unmarshaled bool
-	Equaled     bool
-}
-
-func (cs *customSetting) UnmarshalSetting(v string) error {
-	cs.Value = []byte(v)
-	cs.Unmarshaled = true
-	return nil
-}
-
-func (cs *customSetting) MarshalSetting() string {
-	cs.Marshaled = true
-	return string(cs.Value)
-}
-
-func (cs *customSetting) Equals(v string) bool {
-	cs.Equaled = true
-	return bytes.Equal(cs.Value, []byte(v))
-}
-
-func TestSetting_CustomType(t *testing.T) {
-	is := is.New(t)
-	cs := &customSetting{
-		Value: []byte("hello"),
-	}
-
-	st := &Setting{Value: cs}
-
-	is.Equal(string(cs.Value), st.String()) // expected a custom type to stringify through MarshalSetting
-	is.True(cs.Marshaled)                   // expected MarshalSetting to be called for custom types
-
-	newValue := "goodbye"
-
-	err := st.Set(newValue)
-	is.NoErr(err)                        // expected custom values to be set successfully
-	is.True(cs.Unmarshaled)              // expected UnmarshalSetting to be called for custom types
-	is.Equal(string(cs.Value), newValue) // expected the custom value to be updated
-	is.True(st.Equals(newValue))         // expected the setting to equal the updated custom value
-	is.True(cs.Equaled)                  // expected Equals to be called for custom types
-}
-
 func TestSetting_Notify(t *testing.T) {
 	is := is.New(t)
 	name := "Test"
 	value1 := "value1"
 	value2 := "value2"
 
-	st := &Setting{Name: name, Value: value1}
+	st := &Setting{Name: name, value: value1}
 
 	notifyCalled := false
 	nh := st.Notify(NotifyFunc(func(s *Setting) {
@@ -179,12 +134,12 @@ func TestSetting_Notify(t *testing.T) {
 func TestSetting_FlagCompat(t *testing.T) {
 	is := is.New(t)
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	st := &Setting{Name: "debug", Description: "Sets debug mode", Value: false}
+	st := &Setting{Name: "debug", Description: "Sets debug mode", value: false}
 	st.Flag("debug", fs)
 
 	err := fs.Parse([]string{"-debug"})
 	is.NoErr(err)               // expected the debug flag to parse successfully
-	is.True(st.Value.(bool))    // expected the bool setting to be updated by the flag
+	is.True(st.value.(bool))    // expected the bool setting to be updated by the flag
 	is.Equal(st.Type(), "bool") // expected the flag-compatible type to resolve as bool
 }
 

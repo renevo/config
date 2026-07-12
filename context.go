@@ -10,17 +10,17 @@ var (
 	configSetContextKey = contextKey("config-set")
 )
 
-// FromContext extracts the config.Set instance if it exists from the provided context or config.Default if not present
+// FromContext returns the set stored in ctx, or nil when no set is stored.
 func FromContext(ctx context.Context) *Set {
 	set := ctx.Value(configSetContextKey)
 	if set == nil {
-		return Default
+		return nil
 	}
 
 	return set.(*Set)
 }
 
-// NewContext creates a child context of the supplied context embedding the *config.Set. This *config.Set can be retrieved with the FromContext
-func NewContext(ctx context.Context, set *Set) context.Context {
+// WithContext returns a child context carrying set for use with FromContext.
+func WithContext(ctx context.Context, set *Set) context.Context {
 	return context.WithValue(ctx, configSetContextKey, set)
 }

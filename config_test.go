@@ -7,7 +7,9 @@ import (
 	"github.com/renevo/config"
 )
 
-func ExampleBind() {
+func ExampleSet_Bind() {
+	settings := config.NewSet()
+
 	// create just a simple struct with some descriptive flags for the configuration
 	myConfig := struct {
 		Name     string `description:"This is a name" flag:"name"`
@@ -26,22 +28,29 @@ func ExampleBind() {
 	myConfig.HTTP.Port = 8080
 
 	// bind the configuration under MyApplication to the pointer of the config
-	config.Subset("MyApplication").Bind(&myConfig)
+	applicationSet := settings.Subset("MyApplication")
+	if applicationSet == nil {
+		panic("unable to create application configuration set")
+	}
+	bindErr := applicationSet.Bind(&myConfig)
+	if bindErr != nil {
+		panic(bindErr)
+	}
 
 	// parsing the flags, would normally be replaced with os.Args[1:]
 	_ = flag.CommandLine.Parse([]string{"-name=flagged", "-address=127.0.0.1", "-port=8090"})
 
 	// manually update a setting by full path (the value being set can come from os.GetEnv())
-	_, _ = config.Update("MyApplication.Enabled", "true")
+	_, _ = settings.Update("MyApplication.Enabled", "true")
 
 	// dump the output
-	_ = config.Dump(os.Stdout)
+	_ = settings.Dump(os.Stdout)
 
 	// Output:
 	// Path                        Type        Value           Default Value      Description
-	// MyApplication.Enabled       *bool       "true"          "false"            Enable something
-	// MyApplication.HTTP.Addr     *string     "127.0.0.1"     "0.0.0.0"          Address to listen
-	// MyApplication.HTTP.Port     *int16      "8090"          "8080"             What port to listen
-	// MyApplication.Name          *string     "flagged"       "Default User"     This is a name
-	// MyApplication.Password      *string     "*****"         "*****"            Super secret password
+	// Myapplication.Enabled       *bool       "true"          "false"            Enable something
+	// Myapplication.Http.Addr     *string     "127.0.0.1"     "0.0.0.0"          Address to listen
+	// Myapplication.Http.Port     *int16      "8090"          "8080"             What port to listen
+	// Myapplication.Name          *string     "flagged"       "Default User"     This is a name
+	// Myapplication.Password      *string     "*****"         "*****"            Super secret password
 }
