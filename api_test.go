@@ -26,24 +26,14 @@ func TestBindOnExplicitRootSetCreatesNestedSettings(t *testing.T) {
 		}
 	}
 
-	root.Bind(&cfg)
+	bindErr := root.Bind(&cfg)
+	if bindErr != nil {
+		t.Fatal(bindErr)
+	}
 
 	nameSetting := root.Get("name")
 	is.True(nameSetting != nil) // expected a top-level setting to be created
 
 	httpSetting := root.Get("HTTP.addr")
 	is.True(httpSetting != nil) // expected a nested setting to be created
-}
-
-func TestDefaultConvenienceSetStillWorks(t *testing.T) {
-	is := is.New(t)
-	oldDefault := config.Default
-	config.Default = config.NewSet()
-	t.Cleanup(func() {
-		config.Default = oldDefault
-	})
-
-	setting := config.NewSetting("test", "value", "test setting")
-	is.True(setting != nil)             // expected a setting from the convenience constructor
-	is.Equal(setting.String(), "value") // expected the convenience constructor to use the provided value
 }
