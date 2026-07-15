@@ -39,15 +39,30 @@ override earlier sources. An omitted source value does not clear a default,
 while an explicit empty string is still a value. Unknown source paths return an
 error.
 
-`EnvironmentSource` reads environment variables for the settings registered in
-the receiving set. Setting paths are uppercased and non-alphanumeric separators
+Custom sources receive a replayable `iter.Seq[config.SettingMetadata]` captured
+at the beginning of `Load` or `Reload`. The sequence exposes registered schema
+metadata by value in unspecified order; it does not expose current values,
+defaults, or mutable settings:
+
+```go
+source := config.SourceFunc(func(ctx context.Context, settings iter.Seq[config.SettingMetadata]) ([]config.RawValue, error) {
+	var values []config.RawValue
+	for setting := range settings {
+		// Use setting.Path and other metadata to discover source values.
+	}
+	return values, nil
+})
+```
+
+`EnvironmentSource` reads environment variables for the registered settings
+supplied when it loads. Setting paths are uppercased and non-alphanumeric separators
 become underscores, so `HTTP.Server.Read-Timeout` maps to
 `MYAPP_HTTP_SERVER_READ_TIMEOUT` with the `MYAPP` prefix:
 
 ```go
 settings.Setting("HTTP.Server.Read-Timeout", 15*time.Second, "HTTP read timeout")
 
-if err := settings.Load(ctx, fileSource, settings.EnvironmentSource("MYAPP")); err != nil {
+if err := settings.Load(ctx, fileSource, config.EnvironmentSource("MYAPP")); err != nil {
 	panic(err)
 }
 ```

@@ -3,20 +3,18 @@ package config
 import (
 	"context"
 	"fmt"
+	"iter"
 	"os"
 	"sort"
 	"strings"
 )
 
-type environmentSettingsSource struct {
-	settings *Set
-	prefix   string
-}
+type environmentSettingsSource struct{ prefix string }
 
 // EnvironmentSource reads registered settings from environment variables.
 // Prefix is normalized when the source loads; an invalid prefix fails loading.
-func (s *Set) EnvironmentSource(prefix string) Source {
-	return environmentSettingsSource{settings: s, prefix: prefix}
+func EnvironmentSource(prefix string) Source {
+	return environmentSettingsSource{prefix: prefix}
 }
 
 type environmentSetting struct {
@@ -24,20 +22,18 @@ type environmentSetting struct {
 	path string
 }
 
-func (source environmentSettingsSource) Load(ctx context.Context) ([]RawValue, error) {
+func (source environmentSettingsSource) Load(ctx context.Context, metadata iter.Seq[SettingMetadata]) ([]RawValue, error) {
 	prefix, err := normalizeEnvironmentPrefix(source.prefix)
 	if err != nil {
 		return nil, err
 	}
-	registry := source.settings
 	settings := make([]environmentSetting, 0)
-	registry.Range(func(path string, _ *Setting) bool {
+	for setting := range metadata {
 		settings = append(settings, environmentSetting{
-			name: environmentName(prefix, path),
-			path: path,
+			name: environmentName(prefix, setting.Path),
+			path: setting.Path,
 		})
-		return true
-	})
+	}
 	sort.Slice(settings, func(i, j int) bool {
 		if settings[i].name == settings[j].name {
 			return settings[i].path < settings[j].path

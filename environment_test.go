@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 
@@ -31,8 +32,8 @@ func TestEnvironmentSettingsSource(t *testing.T) {
 			settings.Setting(test.path, &target, "test setting")
 			t.Setenv(test.env, test.value)
 
-			source := settings.EnvironmentSource(test.prefix)
-			values, err := source.Load(context.Background())
+			source := EnvironmentSource(test.prefix)
+			values, err := source.Load(context.Background(), slices.Values([]SettingMetadata{{Path: settingsPath(settings)}}))
 			is.NoErr(err)            // registered settings should map to valid environment names
 			is.Equal(len(values), 1) // the matching environment variable should produce one raw value
 			is.Equal(values[0].Path, settingsPath(settings))
@@ -51,7 +52,11 @@ func TestEnvironmentSettingsSourceCollision(t *testing.T) {
 	settings.Setting("http.read_timeout", &first, "first setting")
 	settings.Setting("http.read.timeout", &second, "second setting")
 
-	values, err := (environmentSettingsSource{settings: settings}).Load(context.Background())
+	metadata := []SettingMetadata{
+		{Path: "Http.Read_timeout"},
+		{Path: "Http.Read.Timeout"},
+	}
+	values, err := (environmentSettingsSource{}).Load(context.Background(), slices.Values(metadata))
 	is.Equal(values, []RawValue(nil)) // ambiguous names should not produce partial source values
 	is.True(err != nil)               // ambiguous normalized names should fail source loading
 	is.True(strings.Contains(err.Error(), "HTTP_READ_TIMEOUT"))
