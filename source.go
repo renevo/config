@@ -4,14 +4,34 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"iter"
+	"reflect"
+	"slices"
 	"strings"
 	"sync"
 )
 
+// SettingMetadata describes a registered setting without exposing its value or mutation APIs.
+type SettingMetadata struct {
+	// Path is the canonical setting path.
+	Path string
+	// Name is the setting name relative to its containing set.
+	Name string
+	// Description is the setting's user-facing description.
+	Description string
+	// Type is the registered Go type.
+	Type reflect.Type
+	// Masked reports whether the setting hides its value.
+	Masked bool
+	// Lockable reports whether locking the set prevents changes to the setting.
+	Lockable bool
+}
+
 // Source supplies raw configuration values for Load and Reload.
 type Source interface {
-	// Load returns the raw values currently supplied by the source.
-	Load(context.Context) ([]RawValue, error)
+	// Load returns the raw values currently supplied by the source. Settings is
+	// a replayable, order-unspecified snapshot of registered setting metadata.
+	Load(context.Context, iter.Seq[SettingMetadata]) ([]RawValue, error)
 }
 
 // RawValue is one source-provided configuration value.
@@ -25,14 +45,16 @@ type RawValue struct {
 }
 
 // SourceFunc adapts a function to Source.
-type SourceFunc func(context.Context) ([]RawValue, error)
+type SourceFunc func(context.Context, iter.Seq[SettingMetadata]) ([]RawValue, error)
 
 // Load implements Source.
-func (source SourceFunc) Load(ctx context.Context) ([]RawValue, error) { return source(ctx) }
+func (source SourceFunc) Load(ctx context.Context, settings iter.Seq[SettingMetadata]) ([]RawValue, error) {
+	return source(ctx, settings)
+}
 
 // ValuesSource creates a source from a map. Map iteration order does not affect precedence.
 func ValuesSource(name string, values map[string]string) Source {
-	return SourceFunc(func(context.Context) ([]RawValue, error) {
+	return SourceFunc(func(context.Context, iter.Seq[SettingMetadata]) ([]RawValue, error) {
 		result := make([]RawValue, 0, len(values))
 		for path, value := range values {
 			result = append(result, RawValue{Path: path, Value: value, Source: name})
@@ -78,7 +100,7 @@ func (source *RuntimeSource) Delete(path string) error {
 }
 
 // Load implements Source.
-func (source *RuntimeSource) Load(context.Context) ([]RawValue, error) {
+func (source *RuntimeSource) Load(context.Context, iter.Seq[SettingMetadata]) ([]RawValue, error) {
 	source.mu.RLock()
 	defer source.mu.RUnlock()
 	result := make([]RawValue, 0, len(source.values))
@@ -152,11 +174,20 @@ func (s *Set) sourceValues(ctx context.Context, sources ...Source) (map[string]R
 		ctx = context.Background()
 	}
 	values := make(map[string]RawValue)
+	metadata := make([]SettingMetadata, 0)
 	root := s.stateRoot()
 	root.mu.RLock()
 	root.settings.Range(func(key, value any) bool {
 		setting := value.(*Setting)
 		values[key.(string)] = RawValue{Path: setting.Path, Value: setting.DefaultValue, Source: "default"}
+		metadata = append(metadata, SettingMetadata{
+			Path:        setting.Path,
+			Name:        setting.Name,
+			Description: setting.Description,
+			Type:        setting.ValueType(),
+			Masked:      setting.Mask,
+			Lockable:    setting.Lockable,
+		})
 		return true
 	})
 	root.mu.RUnlock()
@@ -168,7 +199,7 @@ func (s *Set) sourceValues(ctx context.Context, sources ...Source) (map[string]R
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		rawValues, err := source.Load(ctx)
+		rawValues, err := source.Load(ctx, slices.Values(metadata))
 		if err != nil {
 			return nil, fmt.Errorf("source %d: %w", index, err)
 		}
@@ -183,12 +214,7 @@ func (s *Set) sourceValues(ctx context.Context, sources ...Source) (map[string]R
 			}
 			key := strings.ToLower(canonical)
 			if _, found := values[key]; !found {
-				root.mu.RLock()
-				_, settingFound := root.settings.Load(key)
-				root.mu.RUnlock()
-				if !settingFound {
-					return nil, &SettingError{Path: canonical, Source: raw.Source, Err: ErrNotFound}
-				}
+				return nil, &SettingError{Path: canonical, Source: raw.Source, Err: ErrNotFound}
 			}
 			values[key] = raw
 		}
