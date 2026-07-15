@@ -415,6 +415,7 @@ func (s *Set) Range(fn func(string, *Setting) bool) {
 //
 // Fields can use setting, description, mask, and flag tags. Bound fields are
 // package-owned after binding and should be treated as read-only by callers.
+// Flags are only added when the FlagSet option is provided.
 func (s *Set) Bind(value any, bindOptions ...BindOption) error {
 	if s.Locked() {
 		return ErrSchemaLocked

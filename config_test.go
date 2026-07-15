@@ -9,6 +9,7 @@ import (
 
 func ExampleSet_Bind() {
 	settings := config.NewSet()
+	flags := flag.NewFlagSet("test", flag.ExitOnError)
 
 	// create just a simple struct with some descriptive flags for the configuration
 	myConfig := struct {
@@ -32,13 +33,13 @@ func ExampleSet_Bind() {
 	if applicationSet == nil {
 		panic("unable to create application configuration set")
 	}
-	bindErr := applicationSet.Bind(&myConfig, config.WithFlagSet(flag.CommandLine))
+	bindErr := applicationSet.Bind(&myConfig, config.WithFlagSet(flags))
 	if bindErr != nil {
 		panic(bindErr)
 	}
 
 	// parsing the flags, would normally be replaced with os.Args[1:]
-	_ = flag.CommandLine.Parse([]string{"-name=flagged", "-address=127.0.0.1", "-port=8090"})
+	_ = flags.Parse([]string{"-name=flagged", "-address=127.0.0.1", "-port=8090"})
 
 	// manually update a setting by full path (the value being set can come from os.GetEnv())
 	_, _ = settings.Update("MyApplication.Enabled", "true")
