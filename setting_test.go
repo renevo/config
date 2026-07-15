@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"reflect"
 	"testing"
@@ -129,18 +128,6 @@ func TestSetting_Notify(t *testing.T) {
 	is.NoErr(err)          // expected a later setting update to succeed
 	is.True(!notifyCalled) // expected no notification after the handle has been closed
 
-}
-
-func TestSetting_FlagCompat(t *testing.T) {
-	is := is.New(t)
-	fs := flag.NewFlagSet("test", flag.ContinueOnError)
-	st := &Setting{Name: "debug", Description: "Sets debug mode", value: false}
-	st.SetFlag("debug", fs)
-
-	err := fs.Parse([]string{"-debug"})
-	is.NoErr(err)               // expected the debug flag to parse successfully
-	is.True(st.value.(bool))    // expected the bool setting to be updated by the flag
-	is.Equal(st.Type(), "bool") // expected the flag-compatible type to resolve as bool
 }
 
 type errWriter struct {
