@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"reflect"
@@ -420,7 +419,7 @@ func (s *Set) Bind(value any, bindOptions ...BindOption) error {
 	if s.Locked() {
 		return ErrSchemaLocked
 	}
-	options := BindOptions{FlagSet: flag.CommandLine}
+	options := BindOptions{}
 	for _, option := range bindOptions {
 		if option != nil {
 			option(&options)

@@ -198,10 +198,10 @@ func (s *Setting) IsBoolFlag() bool {
 	return s.value != nil && strings.TrimLeft(fmt.Sprintf("%T", s.value), "*") == "bool"
 }
 
-// Flag registers the setting in fs. If fs is nil, flag.CommandLine is used.
+// Flag registers the setting in fs. If fs is nil, the flag is not registered.
 func (s *Setting) Flag(arg string, fs *flag.FlagSet) {
 	if fs == nil {
-		fs = flag.CommandLine
+		return
 	}
 	fs.Var(s, arg, s.Description)
 }

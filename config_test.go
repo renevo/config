@@ -32,7 +32,7 @@ func ExampleSet_Bind() {
 	if applicationSet == nil {
 		panic("unable to create application configuration set")
 	}
-	bindErr := applicationSet.Bind(&myConfig)
+	bindErr := applicationSet.Bind(&myConfig, config.WithFlagSet(flag.CommandLine))
 	if bindErr != nil {
 		panic(bindErr)
 	}

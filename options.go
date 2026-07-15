@@ -31,7 +31,7 @@ type SettingOption func(*Setting)
 
 // BindOptions configures how a struct is bound to a Set.
 type BindOptions struct {
-	// FlagSet receives flags declared by struct tags. The default is flag.CommandLine.
+	// FlagSet receives flags declared by struct tags. The default is to not add flags to any FlagSet.
 	FlagSet *flag.FlagSet
 	// FlattenAnonymous binds fields of anonymous nested structs into the parent set.
 	FlattenAnonymous bool
