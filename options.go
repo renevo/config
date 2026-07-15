@@ -1,7 +1,6 @@
 package config
 
 import (
-	"flag"
 	"strings"
 )
 
@@ -31,19 +30,12 @@ type SettingOption func(*Setting)
 
 // BindOptions configures how a struct is bound to a Set.
 type BindOptions struct {
-	// FlagSet receives flags declared by struct tags. The default is to not add flags to any FlagSet.
-	FlagSet *flag.FlagSet
 	// FlattenAnonymous binds fields of anonymous nested structs into the parent set.
 	FlattenAnonymous bool
 }
 
 // BindOption customizes struct binding.
 type BindOption func(*BindOptions)
-
-// WithFlagSet registers bound flags in flagSet.
-func WithFlagSet(flagSet *flag.FlagSet) BindOption {
-	return func(options *BindOptions) { options.FlagSet = flagSet }
-}
 
 // FlattenAnonymous makes binding flatten anonymous nested structs.
 func FlattenAnonymous() BindOption {

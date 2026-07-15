@@ -1,7 +1,6 @@
 package config_test
 
 import (
-	"flag"
 	"os"
 
 	"github.com/renevo/config"
@@ -9,15 +8,14 @@ import (
 
 func ExampleSet_Bind() {
 	settings := config.NewSet()
-	flags := flag.NewFlagSet("test", flag.ExitOnError)
 
-	// create just a simple struct with some descriptive flags for the configuration
+	// create just a simple struct
 	myConfig := struct {
-		Name     string `description:"This is a name" flag:"name"`
+		Name     string `description:"This is a name"`
 		Password string `description:"Super secret password" mask:"true"`
 		HTTP     struct {
-			Addr string `name:"Address" description:"Address to listen" flag:"address"`
-			Port int16  `description:"What port to listen" flag:"port"`
+			Addr string `setting:"Address" description:"Address to listen"`
+			Port int16  `description:"What port to listen"`
 		}
 		Enabled bool `description:"Enable something"`
 	}{
@@ -33,13 +31,10 @@ func ExampleSet_Bind() {
 	if applicationSet == nil {
 		panic("unable to create application configuration set")
 	}
-	bindErr := applicationSet.Bind(&myConfig, config.WithFlagSet(flags))
+	bindErr := applicationSet.Bind(&myConfig)
 	if bindErr != nil {
 		panic(bindErr)
 	}
-
-	// parsing the flags, would normally be replaced with os.Args[1:]
-	_ = flags.Parse([]string{"-name=flagged", "-address=127.0.0.1", "-port=8090"})
 
 	// manually update a setting by full path (the value being set can come from os.GetEnv())
 	_, _ = settings.Update("MyApplication.Enabled", "true")
@@ -48,10 +43,10 @@ func ExampleSet_Bind() {
 	_ = settings.Dump(os.Stdout)
 
 	// Output:
-	// Path                        Type        Value           Default Value      Description
-	// Myapplication.Enabled       *bool       "true"          "false"            Enable something
-	// Myapplication.Http.Addr     *string     "127.0.0.1"     "0.0.0.0"          Address to listen
-	// Myapplication.Http.Port     *int16      "8090"          "8080"             What port to listen
-	// Myapplication.Name          *string     "flagged"       "Default User"     This is a name
-	// Myapplication.Password      *string     "*****"         "*****"            Super secret password
+	// Path                           Type        Value              Default Value      Description
+	// Myapplication.Enabled          *bool       "true"             "false"            Enable something
+	// Myapplication.Http.Address     *string     "0.0.0.0"          "0.0.0.0"          Address to listen
+	// Myapplication.Http.Port        *int16      "8080"             "8080"             What port to listen
+	// Myapplication.Name             *string     "Default User"     "Default User"     This is a name
+	// Myapplication.Password         *string     "*****"            "*****"            Super secret password
 }

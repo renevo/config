@@ -413,9 +413,8 @@ func (s *Set) Range(fn func(string, *Setting) bool) {
 
 // Bind binds a pointer to a struct into s.
 //
-// Fields can use setting, description, mask, and flag tags. Bound fields are
+// Fields can use setting, description, and mask tags. Bound fields are
 // package-owned after binding and should be treated as read-only by callers.
-// Flags are only added when the FlagSet option is provided.
 func (s *Set) Bind(value any, bindOptions ...BindOption) error {
 	if s.Locked() {
 		return ErrSchemaLocked
@@ -449,7 +448,6 @@ func (s *Set) Bind(value any, bindOptions ...BindOption) error {
 		description := fieldType.Tag.Get("description")
 		name := fieldType.Name
 		masked := fieldType.Tag.Get("mask") == "true"
-		flagName := fieldType.Tag.Get("flag")
 
 		if tagName := fieldType.Tag.Get("setting"); tagName != "" {
 			name = tagName
@@ -478,9 +476,6 @@ func (s *Set) Bind(value any, bindOptions ...BindOption) error {
 			} else {
 				setting := s.Setting(name, fieldValue.Interface(), description)
 				setting.Mask = masked
-				if flagName != "" {
-					setting.SetFlag(flagName, options.FlagSet)
-				}
 			}
 
 		case reflect.Struct:
@@ -502,11 +497,6 @@ func (s *Set) Bind(value any, bindOptions ...BindOption) error {
 			// all other field types we pass in the pointer to the value as a setting so that it is "bound"
 			setting := s.Setting(name, fieldValue.Addr().Interface(), description)
 			setting.Mask = masked
-
-			// does it have a flag?
-			if flagName != "" {
-				setting.SetFlag(flagName, options.FlagSet)
-			}
 		}
 	}
 

@@ -1,10 +1,8 @@
 package config
 
 import (
-	"flag"
 	"fmt"
 	"reflect"
-	"strings"
 	"sync"
 )
 
@@ -24,9 +22,6 @@ type Setting struct {
 
 	// Path is the canonical dot-separated path of the setting.
 	Path string
-
-	// Flag is the command-line flag name for the setting. It is optional.
-	Flag string
 
 	// Lockable marks a setting that cannot change after its owning set is locked.
 	Lockable bool
@@ -186,33 +181,4 @@ func (s *Setting) equals(text string) bool {
 		return false
 	}
 	return s.settingCodec().Equal(s.value, parsed)
-}
-
-// Type returns the setting type name without a pointer prefix.
-// It satisfies the value contract used by github.com/spf13/pflag.
-func (s *Setting) Type() string {
-	if s.owner != nil {
-		s.owner.mu.RLock()
-		defer s.owner.mu.RUnlock()
-	}
-	return strings.TrimLeft(fmt.Sprintf("%T", s.value), "*")
-}
-
-// IsBoolFlag reports whether the setting can be used as a boolean flag without a value.
-func (s *Setting) IsBoolFlag() bool {
-	if s.owner != nil {
-		s.owner.mu.RLock()
-		defer s.owner.mu.RUnlock()
-	}
-	return s.value != nil && strings.TrimLeft(fmt.Sprintf("%T", s.value), "*") == "bool"
-}
-
-// SetFlag registers the setting in fs and sets the Flag field. If fs is nil, the flag is not registered.
-func (s *Setting) SetFlag(name string, fs *flag.FlagSet) {
-	s.Flag = name
-
-	if fs == nil {
-		return
-	}
-	fs.Var(s, name, s.Description)
 }
