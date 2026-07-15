@@ -479,7 +479,7 @@ func (s *Set) Bind(value any, bindOptions ...BindOption) error {
 				setting := s.Setting(name, fieldValue.Interface(), description)
 				setting.Mask = masked
 				if flagName != "" {
-					setting.Flag(flagName, options.FlagSet)
+					setting.SetFlag(flagName, options.FlagSet)
 				}
 			}
 
@@ -505,7 +505,7 @@ func (s *Set) Bind(value any, bindOptions ...BindOption) error {
 
 			// does it have a flag?
 			if flagName != "" {
-				setting.Flag(flagName, options.FlagSet)
+				setting.SetFlag(flagName, options.FlagSet)
 			}
 		}
 	}

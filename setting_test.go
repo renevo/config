@@ -135,7 +135,7 @@ func TestSetting_FlagCompat(t *testing.T) {
 	is := is.New(t)
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
 	st := &Setting{Name: "debug", Description: "Sets debug mode", value: false}
-	st.Flag("debug", fs)
+	st.SetFlag("debug", fs)
 
 	err := fs.Parse([]string{"-debug"})
 	is.NoErr(err)               // expected the debug flag to parse successfully
