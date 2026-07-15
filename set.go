@@ -2,7 +2,6 @@ package config
 
 import (
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"reflect"
@@ -416,11 +415,12 @@ func (s *Set) Range(fn func(string, *Setting) bool) {
 //
 // Fields can use setting, description, mask, and flag tags. Bound fields are
 // package-owned after binding and should be treated as read-only by callers.
+// Flags are only added when the FlagSet option is provided.
 func (s *Set) Bind(value any, bindOptions ...BindOption) error {
 	if s.Locked() {
 		return ErrSchemaLocked
 	}
-	options := BindOptions{FlagSet: flag.CommandLine}
+	options := BindOptions{}
 	for _, option := range bindOptions {
 		if option != nil {
 			option(&options)
@@ -479,7 +479,7 @@ func (s *Set) Bind(value any, bindOptions ...BindOption) error {
 				setting := s.Setting(name, fieldValue.Interface(), description)
 				setting.Mask = masked
 				if flagName != "" {
-					setting.Flag(flagName, options.FlagSet)
+					setting.SetFlag(flagName, options.FlagSet)
 				}
 			}
 
@@ -505,7 +505,7 @@ func (s *Set) Bind(value any, bindOptions ...BindOption) error {
 
 			// does it have a flag?
 			if flagName != "" {
-				setting.Flag(flagName, options.FlagSet)
+				setting.SetFlag(flagName, options.FlagSet)
 			}
 		}
 	}

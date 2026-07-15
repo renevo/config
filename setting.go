@@ -24,6 +24,9 @@ type Setting struct {
 	// Path is the canonical dot-separated path of the setting.
 	Path string
 
+	// Flag is the command-line flag name for the setting. It is optional.
+	Flag string
+
 	// Lockable marks a setting that cannot change after its owning set is locked.
 	Lockable bool
 
@@ -198,10 +201,12 @@ func (s *Setting) IsBoolFlag() bool {
 	return s.value != nil && strings.TrimLeft(fmt.Sprintf("%T", s.value), "*") == "bool"
 }
 
-// Flag registers the setting in fs. If fs is nil, flag.CommandLine is used.
-func (s *Setting) Flag(arg string, fs *flag.FlagSet) {
+// SetFlag registers the setting in fs and sets the Flag field. If fs is nil, the flag is not registered.
+func (s *Setting) SetFlag(name string, fs *flag.FlagSet) {
+	s.Flag = name
+
 	if fs == nil {
-		fs = flag.CommandLine
+		return
 	}
-	fs.Var(s, arg, s.Description)
+	fs.Var(s, name, s.Description)
 }
