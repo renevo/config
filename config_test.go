@@ -14,7 +14,7 @@ func ExampleSet_Bind() {
 		Name     string `description:"This is a name"`
 		Password string `description:"Super secret password" mask:"true"`
 		HTTP     struct {
-			Addr string `name:"Address" description:"Address to listen"`
+			Addr string `setting:"Address" description:"Address to listen"`
 			Port int16  `description:"What port to listen"`
 		}
 		Enabled bool `description:"Enable something"`
@@ -43,10 +43,10 @@ func ExampleSet_Bind() {
 	_ = settings.Dump(os.Stdout)
 
 	// Output:
-	// Path                        Type        Value              Default Value      Description
-	// Myapplication.Enabled       *bool       "true"             "false"            Enable something
-	// Myapplication.Http.Addr     *string     "0.0.0.0"          "0.0.0.0"          Address to listen
-	// Myapplication.Http.Port     *int16      "8080"             "8080"             What port to listen
-	// Myapplication.Name          *string     "Default User"     "Default User"     This is a name
-	// Myapplication.Password      *string     "*****"            "*****"            Super secret password
+	// Path                           Type        Value              Default Value      Description
+	// Myapplication.Enabled          *bool       "true"             "false"            Enable something
+	// Myapplication.Http.Address     *string     "0.0.0.0"          "0.0.0.0"          Address to listen
+	// Myapplication.Http.Port        *int16      "8080"             "8080"             What port to listen
+	// Myapplication.Name             *string     "Default User"     "Default User"     This is a name
+	// Myapplication.Password         *string     "*****"            "*****"            Super secret password
 }

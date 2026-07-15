@@ -18,6 +18,7 @@ func TestEnvironmentSettingsSource(t *testing.T) {
 	}{
 		{name: "unprefixed", path: "http.address", env: "HTTP_ADDRESS", value: "127.0.0.1:8080"},
 		{name: "prefixed", prefix: "MYAPP", path: "http.address", env: "MYAPP_HTTP_ADDRESS", value: "127.0.0.1:9090"},
+		{name: "underscore prefix", prefix: "__M__", path: "http.address", env: "__M___HTTP_ADDRESS", value: "127.0.0.1:9090"},
 		{name: "nested separators", prefix: "MYAPP", path: "http.server.read-timeout", env: "MYAPP_HTTP_SERVER_READ_TIMEOUT", value: "15s"},
 		{name: "explicit empty", path: "http.address", env: "HTTP_ADDRESS", value: ""},
 	}
@@ -30,13 +31,14 @@ func TestEnvironmentSettingsSource(t *testing.T) {
 			settings.Setting(test.path, &target, "test setting")
 			t.Setenv(test.env, test.value)
 
-			values, err := (environmentSettingsSource{settings: settings, prefix: test.prefix}).Load(context.Background())
+			source := settings.EnvironmentSource(test.prefix)
+			values, err := source.Load(context.Background())
 			is.NoErr(err)            // registered settings should map to valid environment names
 			is.Equal(len(values), 1) // the matching environment variable should produce one raw value
 			is.Equal(values[0].Path, settingsPath(settings))
 			is.Equal(values[0].Value, test.value) // source should preserve text, including an explicit empty string
 			is.Equal(values[0].Source, test.env)  // diagnostics should identify the concrete environment variable
-			is.NoErr(settings.Load(context.Background(), environmentSettingsSource{settings: settings, prefix: test.prefix}))
+			is.NoErr(settings.Load(context.Background(), source))
 			is.Equal(target, test.value) // the existing setting codec should commit the environment text unchanged
 		})
 	}

@@ -86,12 +86,12 @@ func environmentName(prefix, path string) string {
 }
 
 func normalizeEnvironmentPrefix(prefix string) (string, error) {
-	prefix = strings.ToUpper(strings.Trim(prefix, "_"))
+	prefix = strings.ToUpper(prefix)
 	for index, character := range prefix {
 		if (character >= 'A' && character <= 'Z') || character == '_' || (index > 0 && character >= '0' && character <= '9') {
 			continue
 		}
-		return "", fmt.Errorf("environment prefix %q must contain only ASCII letters, digits, and underscores and start with a letter", prefix)
+		return "", fmt.Errorf("environment prefix %q must contain only ASCII letters, digits, and underscores and start with a letter or underscore", prefix)
 	}
 	return prefix, nil
 }

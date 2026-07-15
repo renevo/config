@@ -52,10 +52,11 @@ if err := settings.Load(ctx, fileSource, settings.EnvironmentSource("MYAPP")); e
 }
 ```
 
-Prefixes are case-insensitive, may contain ASCII letters, digits, and
-underscores, and must start with a letter. Use an empty prefix to read names such
-as `HTTP_SERVER_READ_TIMEOUT`. Ambiguous path mappings fail loading instead of
-choosing one setting.
+Prefixes are uppercased but otherwise preserved. They may contain ASCII letters,
+digits, and underscores, and a non-empty prefix must start with a letter or
+underscore. For example, `__M__` produces `__M___HTTP_SERVER_READ_TIMEOUT`. Use
+an empty prefix to read names such as `HTTP_SERVER_READ_TIMEOUT`. Ambiguous path
+mappings fail loading instead of choosing one setting.
 
 Use a named `RuntimeSource` when overrides should survive later reloads:
 
