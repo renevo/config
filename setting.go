@@ -3,6 +3,7 @@ package config
 import (
 	"flag"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 )
@@ -101,6 +102,11 @@ func (s *Setting) notifyChange(oldValue string) {
 		notifier.NotifyChange(change)
 		return true
 	})
+}
+
+// ValueType returns the reflect.Type of the underlying value.
+func (s *Setting) ValueType() reflect.Type {
+	return reflect.TypeOf(s.value)
 }
 
 // Set parses and commits a new value from text.
